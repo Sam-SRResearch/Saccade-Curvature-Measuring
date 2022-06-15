@@ -1,0 +1,110 @@
+source("./helpers.R")
+
+measureAll <- function(index) {
+  # apply all measures
+  sample_df <<- getSamplesInSaccade(index)
+  if (sum(is.na(sample_df$gxR)) > 0) {
+    print("Blink saccade detected, ignoring...")
+  } else {
+    
+    first_sample <<- sample_df[1,] # store the starting sample
+    last_sample <<- tail(sample_df,1) # store the last sample
+    last_sample_amp <- getAmplitude(last_sample, first_sample)
+    
+    sacc_slope <- getSlope(first_sample,last_sample)
+    
+    num_rows <- nrow(sample_df)
+    
+    angles <- rep(NA, num_rows) # initialize vector to fill in with angle values
+    odists <- rep(NA, num_rows) # initialize vector to fill in with odist values
+    
+    for (row_index in 1:num_rows) {
+      
+      sample <- sample_df[row_index, ] # get sample for current index
+      amplitude <- getAmplitude(sample, first_sample)
+      
+      odist <- getOrthogonalDistance(first_sample,last_sample,sample)
+      odists[row_index] <- odist
+      if (amplitude >= 0.5 | last_sample_amp - amplitude >= 0.5) {
+        slope <- getSlope(first_sample,sample)
+        angle <- getAngle(sacc_slope, slope)
+        
+        angles[row_index] <- angle
+      }
+    }
+    c(median(angles[!is.na(angles)]), # get median angle (filtering out NA's first)
+      mean(odists[!is.na(odists)]),max(odists)) # get mean and max orthogonal distance in pixels: TO DO: turn to degs of VA
+  }
+}
+
+measureAngle <- function(index) {
+  # measure angles between line between first and current sample
+  # and line between first and last sample
+  sample_df <<- getSamplesInSaccade(index)
+  if (sum(is.na(sample_df$gxR)) > 0) {
+    print(paste("Index", index, ": Blink detected, ignoring..."), sep=" ")
+  } else {
+    print(paste("Index", index, ": Calculating..."), sep=" ")
+    first_sample <- sample_df[1,] # store the starting sample
+    last_sample <- tail(sample_df,1) # store the last sample
+    last_sample_amp <- getAmplitude(last_sample, first_sample)
+    
+    sacc_slope <- getSlope(first_sample,last_sample)
+    
+    num_rows <- nrow(sample_df)
+    
+    angles <- rep(NA, num_rows) # initialize vector to fill in with angle values
+    
+    for (row_index in 1:num_rows) {
+      sample <- sample_df[row_index, ] # get sample for current index
+      amplitude <- getAmplitude(sample, first_sample)
+      
+      if (amplitude >= 0.5 || last_sample_amp - amplitude >= 0.5) {
+        slope <- getSlope(first_sample,sample)
+        angle <- getAngle(sacc_slope, slope)
+        
+        angles[row_index] <- angle
+      }
+    }
+    median(angles[!is.na(angles)]) # get median (filtering out NA's first)
+  }
+}
+
+measureArea <- function(index) {
+  sample_df <- getSamplesInSaccade
+  
+  if (sum(is.na(sample_df$gxR)) > 0) {
+    print(paste("Index", index, ": Blink detected, ignoring..."), sep=" ")
+  } else {
+    print(paste("Index", index, ": Calculating..."), sep=" ")
+    first_sample <- sample_df[1,] # store the starting sample
+    last_sample <- tail(sample_df,1) # store the last sample
+    
+    sacc_slope <- getSlope(first_sample,last_sample)
+  }
+}
+
+measureOrtho <- function(index) {
+  # measure angles between line between first and current sample
+  # and lines between first and last sample
+  sample_df <<- getSamplesInSaccade(index)
+  if (sum(is.na(sample_df$gxR)) > 0) {
+    print("Blink saccade detected, ignoring...")
+  } else {
+    
+    first_sample <<- sample_df[1,] # store the starting sample
+    last_sample <<- tail(sample_df,1) # store the last sample
+
+    num_rows <- nrow(sample_df)
+    
+    odists <- rep(NA, num_rows) # initialize vector to fill in with odist values
+    
+    for (row_index in 1:num_rows) {
+      sample <- sample_df[row_index, ] # get sample for current index
+
+      odist <- getOrthogonalDistance(first_sample,last_sample,sample)
+      odists[row_index] <- odist
+    }
+    c('mean'=mean(odists[!is.na(odists)]),'max'=max(odists)) # get mean and max orthogonal distance in pixels: TO DO: turn to degs of VA
+  }
+}
