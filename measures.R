@@ -1,3 +1,5 @@
+library(Bolstad2)
+
 source("./helpers.R")
 
 measureAll <- function(index) {
@@ -38,7 +40,7 @@ measureAll <- function(index) {
 }
 
 measureAngle <- function(index) {
-  # measure angles between line between first and current sample
+  # return median of the angles between line between first and current sample
   # and line between first and last sample
   sample_df <<- getSamplesInSaccade(index)
   if (sum(is.na(sample_df$gxR)) > 0) {
@@ -71,7 +73,8 @@ measureAngle <- function(index) {
 }
 
 measureArea <- function(index) {
-  sample_df <- getSamplesInSaccade
+  # return area under the curve of the saccade
+  sample_df <<- getSamplesInSaccade(index)
   
   if (sum(is.na(sample_df$gxR)) > 0) {
     print(paste("Index", index, ": Blink detected, ignoring..."), sep=" ")
@@ -80,13 +83,24 @@ measureArea <- function(index) {
     first_sample <- sample_df[1,] # store the starting sample
     last_sample <- tail(sample_df,1) # store the last sample
     
-    sacc_slope <- getSlope(first_sample,last_sample)
+    num_rows <- nrow(sample_df)
+    
+    odists <<- rep(NA, num_rows)
+    
+    for (row_index in 1:num_rows) {
+      sample <- sample_df[row_index, ] # get sample for current index
+      
+      odist <- getOrthogonalDistance(first_sample,last_sample,sample)
+      odists[row_index] <<- odist
+    }
+    
+    sintegral(1:num_rows, odists, num_rows)
   }
 }
 
 measureOrtho <- function(index) {
-  # measure angles between line between first and current sample
-  # and lines between first and last sample
+  # return a vector with the mean and max of the orthogonal distances between 
+  # each sample and the line between first and last sample
   sample_df <<- getSamplesInSaccade(index)
   if (sum(is.na(sample_df$gxR)) > 0) {
     print("Blink saccade detected, ignoring...")
