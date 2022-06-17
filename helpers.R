@@ -58,3 +58,18 @@ getOrthogonalDistance <- function(firstSample,lastSample, currentSample){
   y0 <-currentSample$gyR
   abs((x2-x1)*(y1-y0)-(x1-x0)*(y2-y1))/sqrt((x2-x1)^2+(y2-y1)^2)
 }
+
+getMainSaccAngle <- function(firstSample, lastSample){
+  # Compute the angle of the main saccade trajectory (straight line between first and last sample)
+  # compared to horizontal,using Data Viewer convention of 0-180 and 0- -180
+  xdiff <- last_sample$gxR-first_sample$gxR
+  ydiff <- -(last_sample$gyR -first_sample$gyR) #Invert because  top left pixel coords
+  saccAngle <- atan(ydiff/xdiff)*180/pi
+  if(xdiff<0 && ydiff >0){
+    saccAngle <- saccAngle +180
+  }
+  if(xdiff<0 && ydiff <0){
+    saccAngle <- saccAngle -180
+  }
+ saccAngle 
+}
