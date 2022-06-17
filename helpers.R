@@ -8,7 +8,10 @@ getSamplesInSaccade <- function(index) {
   ssacc = gaze$saccades$sttime[index]
   esacc = gaze$saccades$entime[index]
   
-  gaze$samples[gaze$samples$time <= esacc & gaze$samples$time >= ssacc,]
+  samples <- gaze$samples
+  
+  samples[samples$time <= esacc & samples$time >= ssacc,]
+  # samples %>% filter(time <= esacc & time >= ssacc)
 }
 
 getAmplitude <- function(sample1, sample2) {
