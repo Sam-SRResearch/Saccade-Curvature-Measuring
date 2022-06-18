@@ -6,8 +6,8 @@ source("./helpers.R")
 measureAll <- function() {
   # apply all measures
 
-  first_sample <- sample_df[1,] # store the starting sample
-  last_sample <- tail(sample_df,1) # store the last sample
+  first_sample <<- sample_df[1,] # store the starting sample
+  last_sample <<- tail(sample_df,1) # store the last sample
   last_sample_amp <- getAmplitude(last_sample, first_sample)
   
   sacc_slope <- getSlope(first_sample,last_sample)
@@ -32,8 +32,9 @@ measureAll <- function() {
       angles[row_index] <- angle
     }
   }
-  c(median(angles[!is.na(angles)]), # get median angle (filtering out NA's first)
+  measures <- c(median(angles[!is.na(angles)]), # get median angle (filtering out NA's first)
     mean(odists[!is.na(odists)]),max(odists),mainSaccAngle) # get mean and max orthogonal distance in pixels: TO DO: turn to degs of VA
+  return(measures)
 }
 
 measureAngle <- function(index) {
