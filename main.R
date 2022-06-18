@@ -3,7 +3,7 @@ library(data.table)
 
 source("./measures.R")
 
-gaze <- read_edf('data/br.edf', import_recordings=FALSE, 
+gaze <- read_edf('data/14.edf', import_recordings=FALSE, 
                  import_saccades = TRUE, import_blinks=FALSE, 
                  import_fixations=FALSE, import_variables=FALSE, 
                  sample_attributes = c('time', 'gx', 'gy', 'rx', 'ry'))
@@ -29,11 +29,11 @@ applyToAll <- function(metric=1) {
 # Fix for jim.edf There seems to be some bug in the EDF reader - all the saccades are in trial 1
 # num_row <-  nrow(gaze$saccades[gaze$saccades$trial==1,]) 
 num_row <- nrow(gaze$saccades)
-resultsTable <-  matrix(NA, nrow=num_row, ncol=4) # Prepare table
-message("Calculating curvature metrics... Please wait")
+resultsTable <-  matrix(NA, nrow=num_row, ncol=5) # Prepare table
 for (row_index in 1:num_row) {
   sample_df <<- getSamplesInSaccade(row_index)
-  if (sum(is.na(sample_df$gxR)) == 0) {
+  ampcheck <- getAmplitude(sample_df[1,],tail(sample_df,1))
+  if (sum(is.na(sample_df$gxR)) == 0 & ampcheck >= 2) {
     resultsTable[row_index,] <- measureAll()
   }
 }
@@ -49,9 +49,9 @@ ninety = c(0,90,180,270)                                       # For red lines
 df <- as.data.frame(resultsTable)
 df$angles <- as.numeric(df$V4+360)%%360 # Make +/- 180 ((data into 0-360 deg data
 df$anglebin <- as.numeric(cut(df$angles, breaks=breaks, right=TRUE))
-colnames(df) <- c("MedSlope","MeanOrth","MaxOrth","Angle","Angle360","AngleBin")
-df$AngleBin[df$AngleBin==13] <- 1
-binmeans <-aggregate(df$MedSlope, list(df$AngleBin), mean, na.rm=TRUE)
+colnames(df) <- c("MedSlope","MeanOrth","MaxOrth","trial","Angle","Angle360","AngleBin")
+df$AngleBin[df$AngleBin==13] <- 1 #Merge the first / last half sized segments
+binmeans <-aggregate(df$MedSlope, list(df$AngleBin), mean, na.rm=TRUE) #change MedSlope for MeanOrth etc
 binmeans <- binmeans[,2]
 
 plotdf <- data.frame(x = seq(0,359,30),y = binmeans)                        # Combine into data frame
