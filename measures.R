@@ -45,7 +45,6 @@ measureAngle <- function(index) {
 
   first_sample <- sample_df[1,] # store the starting sample
   last_sample <- tail(sample_df,1) # store the last sample
-  last_sample_amp <- getAmplitude(last_sample, first_sample)
 
   sacc_slope <- getSlope(first_sample, last_sample)
 
@@ -55,9 +54,10 @@ measureAngle <- function(index) {
 
   for (row_index in 1:num_rows) {
     sample <- sample_df[row_index, ] # get sample for current index
-    amplitude <- getAmplitude(sample, first_sample)
+    famplitude <- getAmplitude(sample, first_sample)
+    lamplitude <- getAmplitude(sample, last_sample)
 
-    if (amplitude >= 0.5 || last_sample_amp - amplitude >= 0.5) {
+    if (famplitude >= 0.5 & lamplitude >= 0.5) {
       slope <- getSlope(first_sample,sample)
       angle <- getAngle(sacc_slope, slope)
 
@@ -76,8 +76,8 @@ measureAngle2 <- function(samples) {
   
   first_slope <- getSlope2(last_sample, first_sample) # get base slope
 
-  famplitude <- getAmplitude2(samples, first_sample)
-  lamplitude <- getAmplitude2(samples, last_sample)
+  famplitudes <- getAmplitude2(samples, first_sample)
+  lamplitudes <- getAmplitude2(samples, last_sample)
   
   samples <- samples[famplitudes >= 0.5 & lamplitudes >= 0.5] # filter out samples with amplitudes >= 0.5
   
