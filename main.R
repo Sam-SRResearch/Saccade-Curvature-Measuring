@@ -8,100 +8,62 @@ gaze <- read_edf('data/jim.edf', import_recordings=FALSE,
                  import_fixations=FALSE, import_variables=FALSE, 
                  sample_attributes = c('time', 'gx', 'gy', 'rx', 'ry'))
 
-applyToAll <- function(metric=1) {
-  measures <- list('measureAll', 'measureAngle', 'measureOrtho', 'measureArea')
-
-  num_row <- nrow(gaze$saccades)
-  vec <<- rep(NA, num_row)
-
-  message("Calculating curvature metrics... (this may take a minute)")
-
-  for (row_index in 1:num_row) {
-    sample_df <<- getSamplesInSaccade(row_index)
-
-    if (!anyNA(sample_df$gxR)) {
-      vec[row_index] <- do.call(measures[[metric]], list())
-    }
-  }
-  vec
-}
-
-applyToAll2 <- function(metric=0) {
-  measures <- list('measureAll', 'measureAngle2', 'measureOrtho2', 'measureArea')
-
-  all_samples <<- setDT(gaze$samples)
-  all_saccades <<- setDT(gaze$saccades)
+applyToAll <- function(metric=0, min_amp=2) {
+  # 0=all, 1=angle, 2=ortho distances, 3=area
+  
+  message('This may take a couple of seconds...')
+  
+  all_samples <- setDT(gaze$samples)
+  all_saccades <- setDT(gaze$saccades)
   
   saccade_count <- nrow(all_saccades)
   
-  return_table <- all_saccades %>% select(trial, sttime, entime, duration)
+  return_table <- all_saccades %>% select(trial, sttime, entime, duration, eye)
   
-  if (metric == 0) {
+  median_angle <- rep(NA, nrow(all_saccades))
+  mean_odist <- rep(NA, nrow(all_saccades))
+  max_odist <- rep(NA, nrow(all_saccades))
+  area <- rep(NA, nrow(all_saccades))
+  
+  for (saccade_index in 1:nrow(all_saccades)) {   # loop through all saccades
+    saccade <- all_saccades[saccade_index] # get current saccade
+    saccade_samples <- all_samples[time >= saccade$sttime & time <=saccade$entime] # collect all samples in saccade
     
-    print('measureAll not implemented')
-    
-  } else if (metric == 1) {
-    
-    median_angle <- rep(NA, nrow(all_saccades))
-    
-    for (saccade_index in 1:nrow(all_saccades)) {   # loop through all saccades
-      saccade <- all_saccades[saccade_index] # get current saccade
-      saccade_samples <- all_samples[time >= saccade$sttime & time <=saccade$entime] # collect all samples in saccade
-      
-      if (!anyNA(saccade_samples$gxR)) {
-        median_angle[saccade_index] <- measureAngle2(saccade_samples)
+    eye_val <- if (saccade$eye == 'LEFT') {
+      c(gx='gxL', gy='gyL')
+    } else {
+      c(gx='gxR', gy='gyR')
+    }
+
+    if (checkAmp(saccade_samples, min_amp, eye_val) & 
+        !anyNA(saccade_samples[[eye_val['gx']]]) & 
+        !anyNA(saccade_samples[[eye_val['gy']]])) {
+      if (metric == 0) {
+        results <- measureAll(saccade_samples, eye_val)
+        median_angle[saccade_index] <- results['median_angles']
+        mean_odist[saccade_index] <- results['mean_odists']
+        max_odist[saccade_index] <- results['max_odists']
+        area[saccade_index] <- results['area']
+
+      } else if (metric == 1) {
+        results <- measureAngle(saccade_samples, eye_val)
+        median_angle[saccade_index] <- results['median_angles']
+        
+      } else if (metric == 2) {
+        results <- measureOrtho(saccade_samples, eye_val)
+        mean_odist[saccade_index] <- results['mean_odists']
+        max_odist[saccade_index] <- results['max_odists']
+        
+      } else if (metric == 3) {
+        results <- measureArea(saccade_samples, eye_val)
+        area[saccade_index] <- results['area']
+        
       }
     }
-    return_table %>% cbind(median_angle)
-    
-  } else if (metric == 2) {
-    
-    mean_odist <- rep(NA, nrow(all_saccades))
-    max_odist <- rep(NA, nrow(all_saccades))
-    
-    for (saccade_index in 1:nrow(all_saccades)) {   # loop through all saccades
-      saccade <- all_saccades[saccade_index] # get current saccade
-      saccade_samples <- all_samples[time >= saccade$sttime & time <=saccade$entime] # collect all samples in saccade
-      
-      if (!anyNA(saccade_samples$gxR)) {
-        results <- measureOrtho2(saccade_samples)
-        # print(results)
-        mean_odist[saccade_index] <- results[1]
-        max_odist[saccade_index] <- results[2]
-      }
-    }
-    return_table %>% cbind(mean_odist, max_odist)
-    
-  } else if (metric == 3) {
-    
-    area <- rep(NA, nrow(all_saccades))
-    
-    for (saccade_index in 1:nrow(all_saccades)) {   # loop through all saccades
-      saccade <- all_saccades[saccade_index] # get current saccade
-      saccade_samples <- all_samples[time >= saccade$sttime & time <=saccade$entime] # collect all samples in saccade
-      
-      if (!anyNA(saccade_samples$gxR)) {
-        results <- measureArea2(saccade_samples)
-        area[saccade_index] <- results
-      }
-    }
-    return_table %>% cbind(area)
-    
   }
+  return_table %>% cbind(median_angle, mean_odist, max_odist, area)
 }
 
-# # Test Loop 
-# # Fix for jim.edf There seems to be some bug in the EDF reader - all the saccades are in trial 1
-# # num_row <-  nrow(gaze$saccades[gaze$saccades$trial==1,]) 
-# num_row <- nrow(gaze$saccades)
-# resultsTable <-  matrix(NA, nrow=num_row, ncol=5) # Prepare table
-# for (row_index in 1:num_row) {
-#   sample_df <<- getSamplesInSaccade(row_index)
-#   ampcheck <- getAmplitude(sample_df[1,],tail(sample_df,1))
-#   if (sum(is.na(sample_df$gxR)) == 0 & ampcheck >= 2) {
-#     resultsTable[row_index,] <- measureAll()
-#   }
-# }
 # 
 # # Attempt radial plot
 # library('ggplot2')
