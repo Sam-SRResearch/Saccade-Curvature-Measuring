@@ -3,13 +3,13 @@ library(data.table)
 
 source("./measures.R")
 
-gaze <- read_edf('data/jim.edf', import_recordings=FALSE, 
-                 import_saccades = TRUE, import_blinks=FALSE, 
-                 import_fixations=FALSE, import_variables=FALSE, 
-                 sample_attributes = c('time', 'gx', 'gy', 'rx', 'ry'))
-
 applyToAll <- function(metric=0, min_amp=2) {
   # 0=all, 1=angle, 2=ortho distances, 3=area
+  
+  gaze <- read_edf(file.choose(), import_recordings=FALSE, 
+                   import_saccades = TRUE, import_blinks=FALSE, 
+                   import_fixations=FALSE, import_variables=FALSE, 
+                   sample_attributes = c('time', 'gx', 'gy', 'rx', 'ry'))
   
   message('This may take a couple of seconds...')
   
@@ -24,6 +24,7 @@ applyToAll <- function(metric=0, min_amp=2) {
   mean_odist <- rep(NA, nrow(all_saccades))
   max_odist <- rep(NA, nrow(all_saccades))
   area <- rep(NA, nrow(all_saccades))
+  amplitude <- rep(NA, nrow(all_saccades))
   
   for (saccade_index in 1:nrow(all_saccades)) {   # loop through all saccades
     saccade <- all_saccades[saccade_index] # get current saccade
@@ -35,9 +36,14 @@ applyToAll <- function(metric=0, min_amp=2) {
       c(gx='gxR', gy='gyR')
     }
 
-    if (checkAmp(saccade_samples, min_amp, eye_val) & 
+    amp <- checkAmp(saccade_samples, eye_val)
+    
+    if ((amp >= min_amp) & 
         !anyNA(saccade_samples[[eye_val['gx']]]) & 
         !anyNA(saccade_samples[[eye_val['gy']]])) {
+      
+      amplitudes[saccade_index] <- amp
+      
       if (metric == 0) {
         results <- measureAll(saccade_samples, eye_val)
         median_angle[saccade_index] <- results['median_angles']
@@ -61,7 +67,7 @@ applyToAll <- function(metric=0, min_amp=2) {
       }
     }
   }
-  return_table %>% cbind(median_angle, mean_odist, max_odist, area)
+  return_table %>% cbind(median_angle, mean_odist, max_odist, area, amplitudes)
 }
 
 # 
