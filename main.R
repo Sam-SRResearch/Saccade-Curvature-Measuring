@@ -42,7 +42,7 @@ applyToAll <- function(metric=0, min_amp=2) {
         !anyNA(saccade_samples[[eye_val['gx']]]) & 
         !anyNA(saccade_samples[[eye_val['gy']]])) {
       
-      amplitudes[saccade_index] <- amp
+      amplitude[saccade_index] <- amp
       
       if (metric == 0) {
         results <- measureAll(saccade_samples, eye_val)
@@ -67,7 +67,7 @@ applyToAll <- function(metric=0, min_amp=2) {
       }
     }
   }
-  return_table %>% cbind(median_angle, mean_odist, max_odist, area, amplitudes)
+  return_table %>% cbind(median_angle, mean_odist, max_odist, area, amplitude)
 }
 
 # 
