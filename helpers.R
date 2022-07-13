@@ -72,11 +72,9 @@ getMainSaccAngle <- function(firstSample, lastSample, eye_val){
  saccAngle 
 }
 
-checkAmp <- function(samples, min_amp, eye_val){
+checkAmp <- function(samples, eye_val){
   first_sample <- samples[1] # get first sample of saccade
   last_sample <- tail(samples, 1) # get last sample of saccade
   
   amp <- getAmplitude(first_sample, last_sample, eye_val)
-  
-  amp >= min_amp
 }
