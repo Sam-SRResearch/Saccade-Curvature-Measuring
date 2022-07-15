@@ -1,25 +1,65 @@
+#=====================================================================
+# Saccade Curvature Measurement Script
+# (R-language Version 4.2.1)
+# Authors: Jeffery Zhan, Sam Hutton (SR-Research Ltd.)
+# Date: July 15, 2022
+#
+# The following scripts takes in EyeLink data as .edf files, 
+# and returns a table, each row representing a saccade, with the following columns: 
+# trial number, start time, end time, duration, eye, amplitude,
+# and depending on input parameters, median angle, mean orthogonal distance and
+# max orthogonal distance, total area under the curve, or all 3.
+#=====================================================================
+
+#-------------------------------------------------------
+# 1. Initialization Block -
+# Clear environment / load in library and function files
+#-------------------------------------------------------
 library(eyelinkReader)
 library(data.table)
 
+rm(list = ls())
+
 source("./measures.R")
 
+#-------------------------------------------------------
+# 2. Function Block -
+# The main function that will be used
+#-------------------------------------------------------
+
 applyToAll <- function(metric=0, min_amp=2) {
-  # 0=all, 1=angle, 2=ortho distances, 3=area
+  # Return a datatable, each row representing a saccade, with the following columns:
+  # trial number, start time, end time, duration, eye, amplitude - 
+  # And, depending on input parameters, median angle, mean orthogonal distance 
+  # and max orthogonal distance, total area under the curve, or all three.
+  #
+  # This function takes two optional arguments: metric, and min_amp.
+  # 
+  # metric changes which metrics should be calculated and included in the final table.
+  # By default, the value of metric is 0.
+  # 0 = all metrics
+  # 1 = median angle
+  # 2 = mean and max orthogonal distance
+  # 3 = total area under the curve
+  # 
+  # min_amp changes the threshold that saccade amplitudes should be greater or equal to
+  # in order to be calculated. Any saccades with amplitudes lower than this value will have
+  # NA metrics in the returned table.
+  # By default, the value of min_amp is 2.
   
   gaze <- read_edf(file.choose(), import_recordings=FALSE, 
                    import_saccades = TRUE, import_blinks=FALSE, 
                    import_fixations=FALSE, import_variables=FALSE, 
                    sample_attributes = c('time', 'gx', 'gy', 'rx', 'ry'))
   
-  message('This may take a couple of seconds...')
-  
   all_samples <- setDT(gaze$samples)
   all_saccades <- setDT(gaze$saccades)
+  # convert from dataframe to datatable mainly for speed and convenience
   
   saccade_count <- nrow(all_saccades)
   
   return_table <- all_saccades %>% select(trial, sttime, entime, duration, eye)
-  
+
   median_angle <- rep(NA, nrow(all_saccades))
   mean_odist <- rep(NA, nrow(all_saccades))
   max_odist <- rep(NA, nrow(all_saccades))
@@ -30,7 +70,7 @@ applyToAll <- function(metric=0, min_amp=2) {
     saccade <- all_saccades[saccade_index] # get current saccade
     saccade_samples <- all_samples[time >= saccade$sttime & time <=saccade$entime] # collect all samples in saccade
     
-    eye_val <- if (saccade$eye == 'LEFT') {
+    eye_val <- if (saccade$eye == 'LEFT') {   # for working with data from both eyes
       c(gx='gxL', gy='gyL')
     } else {
       c(gx='gxR', gy='gyR')
@@ -67,7 +107,7 @@ applyToAll <- function(metric=0, min_amp=2) {
       }
     }
   }
-  return_table %>% cbind(median_angle, mean_odist, max_odist, area, amplitude)
+  return_table %>% cbind(amplitude, median_angle, mean_odist, max_odist, area)
 }
 
 # 
